@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>CotisApp</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0e0e14;
+  --card:#18181f;
+  --card2:#1e1e28;
+  --border:rgba(255,255,255,0.07);
+  --orange:#f97316;
+  --orange-dim:rgba(249,115,22,0.15);
+  --orange-glow:rgba(249,115,22,0.08);
+  --green:#22c55e;
+  --green-dim:rgba(34,197,94,0.12);
+  --red:#ef4444;
+  --red-dim:rgba(239,68,68,0.12);
+  --yellow:#eab308;
+  --yellow-dim:rgba(234,179,8,0.12);
+  --blue:#3b82f6;
+  --blue-dim:rgba(59,130,246,0.12);
+  --purple:#a855f7;
+  --text:#ffffff;
+  --text2:#a1a1aa;
+  --text3:#52525b;
+  --sans:'Inter',sans-serif;
+  --mono:'DM Mono',monospace;
+  --nav-h:72px;
+}
+html{background:var(--bg);}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;}
+#root{width:100%;max-width:430px;min-height:100vh;background:var(--bg);position:relative;}
+
+/* ── SCREENS ── */
+.screen{min-height:100vh;display:flex;flex-direction:column;animation:si .3s ease;padding-bottom:var(--nav-h);}
+.screen.no-nav{padding-bottom:0;}
+@keyframes si{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATUS BAR SPACER ── */
+.safe-top{height:env(safe-area-inset-top,0px);}
+
+/* ── TOP HEADER ── */
+.app-header{
+  padding:16px 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:30;
+  background:var(--bg);
+}
+.app-header-transparent{background:transparent;}
+.header-logo{display:flex;align-items:center;gap:8px;}
+.header-logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--orange),#fb923c);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;color:#fff;
+  font-family:var(--sans);
+  box-shadow:0 4px 12px rgba(249,115,22,0.3);
+}
+.header-logo-text{font-size:20px;font-weight:700;letter-spacing:-.5px;}
+.header-logo-text span{color:var(--orange);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.icon-btn{
+  width:36px;height:36px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;transition:all .2s;
+}
+.icon-btn:hover{background:var(--card2);}
+.role-tag{
+  background:var(--orange-dim);
+  border:1px solid rgba(249,115,22,0.3);
+  color:var(--orange);
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 12px;border-radius:8px;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  height:var(--nav-h);
+  background:rgba(14,14,20,0.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 8px;
+  z-index:50;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 4px;cursor:pointer;transition:all .2s;
+  border-radius:12px;
+}
+.nav-item:active{background:var(--card);}
+.nav-icon{font-size:22px;transition:transform .2s;}
+.nav-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.02em;transition:color .2s;}
+.nav-item.active .nav-label{color:var(--orange);}
+.nav-item.active .nav-icon{transform:scale(1.1);}
+.nav-pay-btn{
+  width:52px;height:52px;
+  background:linear-gradient(135deg,var(--orange),#fb923c);
+  border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+  box-shadow:0 4px 16px rgba(249,115,22,0.4);
+  cursor:pointer;
+  transition:all .2s;
+  margin-top:-8px;
+}
+.nav-pay-btn:active{transform:scale(0.95);}
+
+/* ── SCROLLABLE CONTENT ── */
+.page-content{flex:1;overflow-y:auto;padding:0 20px 16px;}
+.page-content::-webkit-scrollbar{display:none;}
+
+/* ── HERO CARD (like Max it balance card) ── */
+.hero-card{
+  background:linear-gradient(135deg,#1a1a28 0%,#0f0f1c 100%);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:24px;
+  margin-bottom:20px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-card::before{
+  content:'';position:absolute;top:-60px;right:-40px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(249,115,22,0.12) 0%,transparent 70%);
+}
+.hero-card::after{
+  content:'';position:absolute;bottom:-40px;left:-20px;
+  width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(168,85,247,0.08) 0%,transparent 70%);
+}
+.hero-greeting{font-size:13px;color:var(--text2);font-weight:400;margin-bottom:4px;}
+.hero-name{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-bottom:20px;}
+.hero-name span{color:var(--orange);}
+
+.hero-amount-lbl{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.hero-amount{font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.hero-amount small{font-size:16px;font-weight:500;color:var(--text2);margin-left:4px;}
+.hero-late{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--red);font-weight:500;margin-bottom:16px;}
+
+.hero-progress{margin-bottom:16px;}
+.hero-progress-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;}
+.hero-progress-row span:last-child{color:var(--orange);font-weight:600;}
+.progress-bar{height:5px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#fb923c);border-radius:100px;transition:width .8s cubic-bezier(.16,1,.3,1);}
+
+.hero-countdown{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:12px;color:var(--text2);
+  font-family:var(--mono);
+}
+.cd-dot{width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── PARTS SELECTOR ── */
+.parts-wrap{margin:16px 0 0;}
+.parts-lbl{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+.parts-row{display:flex;gap:6px;}
+.part-btn{
+  flex:1;padding:10px 4px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--text2);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s;text-align:center;
+  font-family:var(--sans);
+}
+.part-btn.active{
+  background:var(--orange-dim);
+  border-color:rgba(249,115,22,0.4);
+  color:var(--orange);font-weight:700;
+}
+
+/* ── QUICK ACTIONS ── */
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.qa-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+.qa-icon{
+  width:56px;height:56px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:transform .2s;
+}
+.qa-icon:active{transform:scale(0.93);}
+.qa-label{font-size:11px;font-weight:500;color:var(--text2);text-align:center;line-height:1.3;}
+
+/* ── SECTION HEADER ── */
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sec-title{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+.sec-badge{
+  background:var(--orange-dim);color:var(--orange);
+  font-family:var(--mono);font-size:10px;
+  padding:3px 10px;border-radius:100px;
+  border:1px solid rgba(249,115,22,0.2);
+}
+
+/* ── PAYMENT CARDS ── */
+.pay-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:10px;
+  display:flex;align-items:flex-start;gap:12px;
+  transition:all .2s;
+}
+.pay-card:active{transform:scale(0.99);}
+.pay-avatar{
+  width:44px;height:44px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;font-weight:700;
+}
+.pay-body{flex:1;min-width:0;}
+.pay-name{font-size:14px;font-weight:600;letter-spacing:-.2px;margin-bottom:2px;}
+.pay-meta{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.pay-ref{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.pay-right{text-align:right;flex-shrink:0;}
+.pay-amount{font-size:15px;font-weight:700;margin-bottom:4px;}
+.pay-chip{
+  font-size:10px;font-weight:600;
+  padding:3px 10px;border-radius:100px;
+  display:inline-block;
+}
+.chip-v{background:var(--green-dim);color:var(--green);}
+.chip-p{background:var(--yellow-dim);color:var(--yellow);}
+.chip-r{background:var(--red-dim);color:var(--red);}
+.pay-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:8px;}
+.pay-btn-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.2);padding:6px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;}
+.pay-btn-no{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.2);padding:6px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;}
+
+/* ── STATUS BANNER ── */
+.status-banner{
+  border-radius:14px;padding:14px 16px;
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:500;
+  margin-bottom:16px;
+}
+.sb-g{background:var(--green-dim);border:1px solid rgba(34,197,94,0.2);color:var(--green);}
+.sb-o{background:var(--yellow-dim);border:1px solid rgba(234,179,8,0.2);color:var(--yellow);}
+.sb-r{background:var(--red-dim);border:1px solid rgba(239,68,68,0.2);color:var(--red);}
+
+/* ── FORMS ── */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;}
+.form-title{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.form-title-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.field{margin-bottom:14px;}
+.field-lbl{font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:7px;letter-spacing:.03em;}
+.field-inp{
+  width:100%;padding:13px 16px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:12px;color:var(--text);
+  font-family:var(--sans);font-size:14px;
+  outline:none;transition:border-color .2s,background .2s;
+}
+.field-inp:focus{border-color:rgba(249,115,22,0.5);background:rgba(249,115,22,0.03);}
+.field-inp::placeholder{color:var(--text3);}
+.field-note{font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5;}
+.pin-inp{text-align:center;letter-spacing:.4em;font-size:22px;font-family:var(--mono);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ── BUTTONS ── */
+.btn-orange{
+  width:100%;padding:16px;
+  background:linear-gradient(135deg,var(--orange),#fb923c);
+  color:#fff;border:none;border-radius:14px;
+  font-family:var(--sans);font-weight:700;font-size:15px;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 16px rgba(249,115,22,0.3);
+}
+.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(249,115,22,0.4);}
+.btn-orange:active{transform:scale(0.98);}
+.btn-orange:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-ghost{
+  width:100%;padding:14px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:14px;font-family:var(--sans);font-weight:600;font-size:14px;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:10px;
+}
+.btn-ghost:hover{border-color:rgba(249,115,22,0.3);background:var(--orange-glow);}
+.btn-wa{
+  width:100%;padding:14px;
+  background:rgba(37,211,102,0.1);
+  border:1px solid rgba(37,211,102,0.2);
+  color:#25D366;border-radius:14px;
+  font-family:var(--sans);font-weight:600;font-size:14px;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-wa:hover{background:rgba(37,211,102,0.15);}
+
+/* ── MOMO GUIDE ── */
+.momo-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;}
+.momo-op-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.momo-op-tab{
+  flex:1;padding:10px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.momo-tab-og.active{background:rgba(255,107,0,.15);border-color:rgba(255,107,0,.3);color:#FF6B00;}
+.momo-tab-mtn.active{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#F59E0B;}
+.momo-mode-row{display:flex;background:var(--card2);border-radius:10px;padding:3px;margin-bottom:14px;}
+.momo-mode-btn{flex:1;padding:8px;font-size:11px;font-weight:500;background:none;border:none;color:var(--text3);cursor:pointer;border-radius:8px;transition:all .2s;}
+.momo-mode-btn.active{background:var(--card);color:var(--text);font-weight:600;}
+.momo-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.momo-step{display:flex;align-items:flex-start;gap:10px;}
+.step-num{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.step-num-og{background:rgba(255,107,0,.15);color:#FF6B00;}
+.step-num-mtn{background:rgba(245,158,11,.12);color:#F59E0B;}
+.step-emoji{font-size:16px;flex-shrink:0;}
+.step-text{font-size:12px;color:var(--text2);line-height:1.55;}
+.step-text b{color:var(--text);font-weight:600;}
+.btn-ussd{
+  width:100%;padding:13px;border:none;border-radius:12px;
+  font-weight:700;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .2s;
+}
+
+/* ── SUMMARY CARDS ── */
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.sum-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.sum-icon{font-size:20px;margin-bottom:8px;}
+.sum-val{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:2px;}
+.sum-lbl{font-size:11px;color:var(--text2);font-weight:500;}
+
+/* ── LICENSE/AUTH SCREENS ── */
+.full-screen{min-height:100vh;display:flex;flex-direction:column;padding:0 24px;background:var(--bg);animation:si .3s ease;}
+.fs-top{padding:20px 0 0;display:flex;align-items:center;justify-content:space-between;}
+.fs-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;}
+.fs-eyebrow{font-size:11px;font-weight:600;color:var(--orange);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.fs-eyebrow::before{content:'';width:20px;height:2px;background:var(--orange);border-radius:100px;}
+.fs-title{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1.05;margin-bottom:12px;}
+.fs-title span{color:var(--orange);}
+.fs-sub{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:40px;font-weight:400;}
+.fs-footer{padding:20px 0 32px;text-align:center;font-size:12px;color:var(--text3);}
+.fs-footer strong{color:var(--text2);}
+
+.lic-error-box{background:var(--red-dim);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:12px 16px;font-size:12px;color:var(--red);margin-bottom:20px;font-weight:500;}
+
+/* ── CGU ── */
+.cgu-item{border-top:1px solid var(--border);padding:20px 0;display:flex;gap:16px;}
+.cgu-item:last-of-type{border-bottom:1px solid var(--border);margin-bottom:32px;}
+.cgu-num{font-size:28px;font-weight:800;color:var(--border);letter-spacing:-1px;flex-shrink:0;width:36px;}
+.cgu-title2{font-size:14px;font-weight:700;margin-bottom:5px;}
+.cgu-text{font-size:12px;color:var(--text2);line-height:1.65;}
+
+/* ── PORTAL ── */
+.portal-group{font-size:12px;color:var(--text2);text-align:center;margin-bottom:24px;font-weight:500;}
+.portal-group span{color:var(--orange);font-weight:700;}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:48px 0;color:var(--text3);font-size:13px;line-height:1.8;}
+.empty-icon{font-size:36px;margin-bottom:12px;}
+
+/* ── NOTIF ── */
+#notif{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  padding:14px 20px;text-align:center;
+  font-size:13px;font-weight:600;z-index:999;
+  backdrop-filter:blur(12px);
+}
+#notif.s{background:rgba(34,197,94,0.95);color:#fff;}
+#notif.e{background:rgba(239,68,68,0.95);color:#fff;}
+
+/* ── LICENSE BANNER ── */
+.lic-banner{padding:10px 14px;border-radius:10px;font-size:11px;font-weight:500;display:flex;align-items:center;gap:6px;margin-bottom:16px;}
+.lic-ok{background:var(--green-dim);border:1px solid rgba(34,197,94,0.2);color:var(--green);}
+.lic-warn{background:var(--yellow-dim);border:1px solid rgba(234,179,8,0.2);color:var(--yellow);}
+.lic-danger{background:var(--red-dim);border:1px solid rgba(239,68,68,0.2);color:var(--red);}
+
+/* PIN WARN */
+.pin-warn{font-size:12px;font-weight:500;margin-top:8px;}
+.pw-r{color:var(--red);}
+.pw-o{color:var(--yellow);}
+
+/* SEPARATOR */
+.sep{display:flex;align-items:center;gap:12px;margin:16px 0;}
+.sep-line{flex:1;height:1px;background:var(--border);}
+.sep-txt{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.04em;}
+
+/* ── STATUS DOTS ── */
+.status-dot{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;letter-spacing:.04em;
+  padding:3px 9px;border-radius:100px;
+}
+.dot-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
+.dot-orange{background:rgba(234,179,8,0.15);color:#f59e0b;border:1px solid rgba(234,179,8,0.3);}
+.dot-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.25);}
+.dot-pulse{width:6px;height:6px;border-radius:50%;display:inline-block;animation:pulse 2s infinite;}
+.dot-pulse-g{background:var(--green);}
+.dot-pulse-o{background:#f59e0b;}
+.dot-pulse-r{background:var(--red);}
+
+/* ── MEMBER SETTINGS ── */
+.mem-settings-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;}
+.mem-settings-title{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.mem-settings-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--orange-dim);}
+.op-selector{display:flex;gap:8px;margin-top:4px;}
+.op-btn{
+  flex:1;padding:10px 6px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;text-align:center;
+  font-family:var(--sans);color:var(--text2);
+}
+.op-btn.active-og{background:rgba(255,107,0,.15);border-color:rgba(255,107,0,.35);color:#FF6B00;}
+.op-btn.active-mtn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#F59E0B;}
+.btn-save-mem{
+  width:100%;padding:13px;
+  background:var(--orange-dim);color:var(--orange);
+  border:1px solid rgba(249,115,22,0.25);
+  border-radius:12px;font-weight:700;font-size:13px;
+  cursor:pointer;transition:all .2s;
+}
+.btn-save-mem:hover{background:rgba(249,115,22,0.2);}
+
+/* ── LANGUAGE SCREEN ── */
+.lang-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;background:var(--bg);animation:si .3s ease;}
+.lang-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--orange),#fb923c);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:#fff;box-shadow:0 8px 24px rgba(249,115,22,0.35);margin-bottom:24px;}
+.lang-title{font-size:28px;font-weight:800;letter-spacing:-.8px;margin-bottom:6px;text-align:center;}
+.lang-sub{font-size:13px;color:var(--text2);margin-bottom:40px;text-align:center;}
+.lang-btns{display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;}
+.lang-btn{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 20px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;cursor:pointer;transition:all .2s;
+  font-size:15px;font-weight:600;
+}
+.lang-btn:hover{border-color:rgba(249,115,22,0.4);background:var(--orange-glow);}
+.lang-btn-flag{font-size:28px;}
+.lang-btn-name{flex:1;}
+.lang-btn-arrow{color:var(--text3);font-size:18px;}
+
+/* ── LIGHT MODE ── */
+body.light{--bg:#f4f4f8;--card:#ffffff;--card2:#f0f0f5;--border:rgba(0,0,0,0.08);--text:#111827;--text2:#6b7280;--text3:#9ca3af;}
+.theme-toggle{width:36px;height:36px;background:var(--card);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;}
+
+/* ── MODAL CONFIRM ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box{width:100%;max-width:430px;background:var(--card);border-radius:24px 24px 0 0;padding:28px 24px 40px;animation:slideUp .25s cubic-bezier(.16,1,.3,1);}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:8px;}
+.modal-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:24px;}
+.modal-amount{font-size:28px;font-weight:800;color:var(--orange);margin:12px 0;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btn-ok{flex:1;padding:14px;background:linear-gradient(135deg,var(--green),#16a34a);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;}
+.modal-btn-cancel{flex:1;padding:14px;background:var(--card2);color:var(--text2);border:1px solid var(--border);border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;}
+
+/* ── SEARCH BAR ── */
+.search-wrap{position:relative;margin-bottom:14px;}
+.search-inp{width:100%;padding:11px 16px 11px 40px;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .2s;}
+.search-inp:focus{border-color:rgba(249,115,22,0.4);}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text3);}
+
+/* ── SESSION CLOSED SCREEN ── */
+.session-closed{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;}
+.sc-icon{font-size:56px;margin-bottom:16px;}
+.sc-title{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px;}
+.sc-sub{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:28px;}
+.sc-summary{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;margin-bottom:24px;text-align:left;}
+.sc-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.sc-row:last-child{border-bottom:none;font-weight:700;font-size:14px;}
+.sc-val{color:var(--orange);font-weight:600;}
+
+/* ── WA REMINDER ── */
+.wa-remind-btn{
+  width:100%;padding:13px;
+  background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);
+  color:#25D366;border-radius:12px;
+  font-weight:700;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:10px;transition:all .2s;
+}
+.wa-remind-btn:hover{background:rgba(37,211,102,0.18);}
+
+/* ── EXPORT BTN ── */
+.export-btn{
+  width:100%;padding:13px;
+  background:var(--blue-dim);border:1px solid rgba(59,130,246,0.2);
+  color:var(--blue);border-radius:12px;
+  font-weight:700;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:10px;transition:all .2s;
+}
+.export-btn:hover{background:rgba(59,130,246,0.2);}
+
+/* ── SESSION HISTORY ── */
+.sess-card{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.sess-num{width:32px;height:32px;border-radius:10px;background:var(--orange-dim);color:var(--orange);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px;}
+.sess-body{flex:1;}
+.sess-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.sess-date{font-size:11px;color:var(--text3);}
+.sess-right{text-align:right;}
+.sess-amount{font-size:13px;font-weight:700;color:var(--green);}
+.sess-rate{font-size:10px;color:var(--text3);}
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0e0e14;font-family:Inter,sans-serif"><div style="width:64px;height:64px;background:linear-gradient(135deg,#f97316,#fb923c);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin-bottom:16px;box-shadow:0 8px 24px rgba(249,115,22,0.4)">C</div><div style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-.5px">CotisApp</div><div style="font-size:12px;color:#52525b;margin-top:6px;font-family:monospace">Chargement…</div></div>
+</div>
+
+<script>
+var FB_CFG={apiKey:"AIzaSyBWYo9uz-ELYY-zouXT0-lyNXOrBBjZ8tU",authDomain:"cotisapp.firebaseapp.com",databaseURL:"https://cotisapp-default-rtdb.firebaseio.com",projectId:"cotisapp",storageBucket:"cotisapp.firebasestorage.app",messagingSenderId:"817783273140",appId:"1:817783273140:web:049a9cea3c86b3c0f9d8f4"};
+var CREATOR="David Youdom",MAX_T=3,LOCK_MS=5*60*1000;
+var PARTS=[{l:"½",v:.5},{l:"1",v:1},{l:"2",v:2},{l:"3",v:3}];
+var OPS={
+  orange:{label:"Orange Money",emoji:"🟠",color:"#FF6B00",
+    su:function(p,a){return[{e:"📱",t:"Compose <b>#150*1*1*"+p+"*"+a+"*TON_PIN#</b> puis Appel"},{e:"✅",t:"Confirme l'envoi"},{e:"📩",t:"SMS de confirmation avec référence"},{e:"📋",t:"Copie la référence ci-dessous"}];},
+    sa:function(p,a){return[{e:"📲",t:"Ouvre l'appli <b>Orange Money</b>"},{e:"💸",t:"Transfert d'argent"},{e:"🔢",t:"N° <b>"+p+"</b> — <b>"+new Intl.NumberFormat("fr-FR").format(a)+" FCFA</b>"},{e:"🔑",t:"PIN et confirme"},{e:"📩",t:"Note la référence"}];}
+  },
+  mtn:{label:"MTN MoMo",emoji:"🟡",color:"#F59E0B",
+    su:function(p,a){return[{e:"📱",t:"Compose <b>*126*1*"+p+"*"+a+"#</b> puis Appel"},{e:"🔑",t:"Entre ton PIN MoMo"},{e:"✅",t:"Confirme"},{e:"📩",t:"SMS avec référence — copie-la"}];},
+    sa:function(p,a){return[{e:"📲",t:"Ouvre l'appli <b>MoMo</b>"},{e:"💸",t:"Envoyer de l'argent"},{e:"🔢",t:"N° <b>"+p+"</b> — <b>"+new Intl.NumberFormat("fr-FR").format(a)+" FCFA</b>"},{e:"🔑",t:"PIN et confirme"},{e:"📩",t:"Note la référence"}];}
+  }
+};
+var DS={montantBase:10000,montantAmende:1000,heureLimite:new Date(Date.now()+86400000).toISOString().slice(0,16),beneficiaryName:"À définir",beneficiaryPhone:"6XXXXXXXX",beneficiaryOperator:"orange",pinHash:hp("123456"),treasurerPhone:"",groupName:"Mon Groupe",totalMembers:10};
+
+function hp(p){var h=0,s=p+"cotisapp_salt_2024";for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);h=((h<<5)-h)+c;h=h&h;}return Math.abs(h).toString(36)+s.length.toString(36);}
+
+var db=null,fbOk=false,cdT=null;
+var S={
+  screen:localStorage.getItem("lang")?"license":"lang",role:null,pin:"",
+  tries:parseInt(localStorage.getItem("pa")||"0"),
+  lockUntil:parseInt(localStorage.getItem("pl")||"0"),
+  licKey:localStorage.getItem("lk")||"",licData:null,licStatus:null,
+  cfg:JSON.parse(JSON.stringify(DS)),pays:{},
+  mName:localStorage.getItem("sn")||"",mPhone:localStorage.getItem("sp")||"",
+  mOp:localStorage.getItem("so")||"orange",mRef:"",
+  sub:null,notif:null,cd:"",tab:"home",
+  gOp:"orange",gMode:"ussd",parts:1,np1:"",np2:"",
+  activeNav:"home",
+  lang:localStorage.getItem("lang")||"fr"
+};
+
+function initFB(){
+  try{
+    firebase.initializeApp(FB_CFG);db=firebase.database();fbOk=true;
+    if(S.licKey)valLic(S.licKey);else render();
+  }catch(e){fbOk=false;var s=localStorage.getItem("cs"),p=localStorage.getItem("cp");if(s)S.cfg=JSON.parse(s);if(p)S.pays=JSON.parse(p);S.gOp=S.cfg.beneficiaryOperator;startCD();render();}
+}
+function saveL(){localStorage.setItem("cs",JSON.stringify(S.cfg));localStorage.setItem("cp",JSON.stringify(S.pays));}
+
+function valLic(key){
+  if(!fbOk){enterApp();return;}
+  var kid=key.replace(/-/g,"_");
+  db.ref("licenses/"+kid).once("value",function(snap){
+    if(!snap.exists()){S.licStatus="invalid";S.licKey="";localStorage.removeItem("lk");showN("❌ Clé invalide","e");render();return;}
+    var l=snap.val();
+    if(l.revoked){S.licStatus="revoked";S.licKey="";localStorage.removeItem("lk");showN("🚫 Licence révoquée","e");render();return;}
+    if(!l.activatedAt){var now=new Date().toISOString();var exp=new Date();exp.setMonth(exp.getMonth()+6);db.ref("licenses/"+kid).update({activatedAt:now,expiresAt:exp.toISOString()});l.activatedAt=now;l.expiresAt=exp.toISOString();}
+    if(new Date()>new Date(l.expiresAt)){S.licStatus="expired";S.licData=l;S.licKey="";localStorage.removeItem("lk");showN("⏰ Licence expirée","e");render();return;}
+    S.licData=l;S.licStatus="valid";S.licKey=key;localStorage.setItem("lk",key);enterApp();
+  });
+}
+
+function gk(){return(S.licKey||"default").replace(/-/g,"_");}
+function enterApp(){
+  db.ref("groups/"+gk()+"/settings").on("value",function(snap){S.cfg=snap.exists()?snap.val():DS;if(!snap.exists())db.ref("groups/"+gk()+"/settings").set(DS);S.gOp=S.cfg.beneficiaryOperator;startCD();render();});
+  db.ref("groups/"+gk()+"/payments").on("value",function(snap){S.pays=snap.exists()?snap.val():{};render();});
+  S.screen="cgu";render();
+}
+function startCD(){if(cdT)clearInterval(cdT);updCD();cdT=setInterval(function(){updCD();var e=document.getElementById("cd");if(e)e.textContent=S.cd;},1000);}
+function updCD(){var d=new Date(S.cfg.heureLimite)-new Date();if(d<=0){S.cd="Délai dépassé";return;}var h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);S.cd=h+"h "+String(m).padStart(2,"0")+"m "+String(s).padStart(2,"0")+"s";}
+
+var fmt=function(v){return new Intl.NumberFormat("fr-FR").format(v)+" FCFA";};
+var late=function(){return new Date()>new Date(S.cfg.heureLimite);};
+var due=function(){return Math.round((late()?Number(S.cfg.montantBase)+Number(S.cfg.montantAmende):Number(S.cfg.montantBase))*S.parts);};
+var q=function(s){return document.querySelector(s);};
+var locked=function(){return Date.now()<S.lockUntil;};
+var lSec=function(){return Math.max(0,Math.ceil((S.lockUntil-Date.now())/1000));};
+var licDays=function(){if(!S.licData||!S.licData.expiresAt)return null;return Math.ceil((new Date(S.licData.expiresAt)-new Date())/86400000);};
+
+function showN(msg,type){
+  var el=document.getElementById("notif");
+  if(!el){el=document.createElement("div");el.id="notif";document.body.appendChild(el);}
+  el.className=type||"s";el.textContent=msg;el.style.opacity="1";
+  clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity="0";},3000);
+}
+function set$(p){Object.keys(p).forEach(function(k){S[k]=p[k];});render();}
+
+function tryAdmin(){
+  if(locked()){showN("🔒 Bloqué — "+lSec()+"s","e");return;}
+  if(S.pin.length<6){showN("PIN minimum 6 chiffres","e");return;}
+  if(hp(S.pin)===(S.cfg.pinHash||hp("123456"))){
+    S.tries=0;localStorage.removeItem("pa");localStorage.removeItem("pl");
+    set$({screen:"app",role:"admin",pin:"",activeNav:"home",tab:"home"});
+  } else {
+    S.tries++;localStorage.setItem("pa",S.tries);
+    if(S.tries>=MAX_T){S.lockUntil=Date.now()+LOCK_MS;localStorage.setItem("pl",S.lockUntil);S.tries=0;localStorage.setItem("pa","0");showN("🔒 3 échecs — bloqué 5 min","e");}
+    else showN("PIN incorrect — "+(MAX_T-S.tries)+" essai(s)","e");
+    set$({pin:""});
+  }
+}
+function changePIN(){
+  if(S.np1.length<6){showN("6 chiffres minimum","e");return;}
+  if(S.np1!==S.np2){showN("PIN non identiques","e");return;}
+  if(!/^\d+$/.test(S.np1)){showN("Chiffres uniquement","e");return;}
+  saveCfg({pinHash:hp(S.np1)});set$({screen:"app",role:"admin",np1:"",np2:"",activeNav:"settings"});showN("✅ PIN modifié !");
+}
+function saveCfg(p){Object.keys(p).forEach(function(k){S.cfg[k]=p[k];});if(fbOk)db.ref("groups/"+gk()+"/settings").set(S.cfg);else saveL();}
+
+function submitPay(){
+  var n=S.mName.trim(),p=S.mPhone.trim(),r=S.mRef.trim();
+  if(!n){showN("Entre ton nom","e");return;}
+  if(!p){showN("Entre ton numéro","e");return;}
+  if(!r){showN("Référence transaction obligatoire","e");return;}
+  var ps=Object.values(S.pays);for(var i=0;i<ps.length;i++){if(ps[i].txRef===r&&ps[i].status!=="rejeté"){showN("⚠ Référence déjà utilisée","e");return;}}
+  S.sub="loading";render();
+  var pay={memberName:n,memberPhone:p,memberOperator:S.mOp,amount:due(),txRef:r,parts:S.parts,status:"en attente",createdAt:new Date().toISOString(),txId:"TX"+Math.random().toString(36).substr(2,8).toUpperCase()};
+  localStorage.setItem("sn",n);localStorage.setItem("sp",p);localStorage.setItem("so",S.mOp);
+  if(fbOk){db.ref("groups/"+gk()+"/payments").push(pay).then(function(){S.mRef="";S.sub=null;showN("✅ Déclaré ! Le trésorier va valider.");render();}).catch(function(){S.sub=null;showN("Erreur","e");});}
+  else{S.pays[Date.now()]=pay;saveL();S.mRef="";S.sub=null;showN("✅ Déclaré !");render();}
+}
+function valPay(key){
+  var p=S.pays[key];if(!p)return;
+  if(fbOk)db.ref("groups/"+gk()+"/payments/"+key).update({status:"validé",validatedAt:new Date().toISOString()});
+  else{S.pays[key].status="validé";saveL();render();}
+  window.open("https://wa.me/"+p.memberPhone.replace(/\D/g,"")+"?text="+encodeURIComponent("*✅ REÇU — CotisApp*\n\nPaiement de *"+fmt(p.amount)+"* confirmé !\n👤 "+p.memberName+"\n🆔 "+p.txId+"\n📋 Réf: "+p.txRef+"\n\n_"+CREATOR+"_"),"_blank");
+}
+function rejPay(key){
+  var p=S.pays[key];if(!p)return;
+  var r=prompt("Raison du rejet :")||"";
+  if(fbOk)db.ref("groups/"+gk()+"/payments/"+key).update({status:"rejeté",rejectReason:r});
+  else{S.pays[key].status="rejeté";S.pays[key].rejectReason=r;saveL();render();}
+  if(p.memberPhone)window.open("https://wa.me/"+p.memberPhone.replace(/\D/g,"")+"?text="+encodeURIComponent("*❌ PAIEMENT REJETÉ*\n\n👤 "+p.memberName+(r?"\n📝 "+r:"")+"\n\nContacte le trésorier."),"_blank");
+}
+function sendProof(){
+  var op=OPS[S.mOp]||OPS.orange,tp=S.cfg.treasurerPhone||"";
+  var msg="*💳 PREUVE DE PAIEMENT — CotisApp*\n\n👤 *"+S.mName+"*\n📱 "+S.mPhone+"\n"+op.emoji+" "+op.label+"\n💰 *"+fmt(due())+"*\n📋 Réf: "+(S.mRef||"—")+"\n\n✅ Merci de valider.";
+  if(tp)window.open("https://wa.me/"+tp.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+  else showN("⚠ Numéro trésorier non configuré","e");
+}
+function momoSteps(){
+  var op=OPS[S.gOp]||OPS.orange;
+  var steps=S.gMode==="app"?op.sa(S.cfg.beneficiaryPhone,due()):op.su(S.cfg.beneficiaryPhone,due());
+  var nc=S.gOp==="orange"?"step-num-og":"step-num-mtn";
+  return steps.map(function(s,i){return'<div class="momo-step"><div class="step-num '+nc+'">'+(i+1)+'</div><div class="step-emoji">'+s.e+'</div><div class="step-text">'+s.t+'</div></div>';}).join("");
+}
+
+
+/* ── i18n ── */
+var T={
+  fr:{
+    member:"Membre",treasurer:"Trésorier",beneficiary:"Bénéficiaire du jour",
+    amountToPay:"Montant à verser",collectivePot:"Cagnotte collective",
+    copyNum:"Copier numéro",sendProof:"Envoyer preuve",
+    paymentConfirmed:"Paiement confirmé",paymentRejected:"Rejeté — contacte le trésorier",
+    paymentPending:"En attente de validation",
+    howToPay:"Comment payer ?",declarePayment:"Déclarer mon paiement",
+    fullName:"Nom complet",paymentNum:"Numéro de paiement",operator:"Opérateur",
+    txRef:"Référence transaction ⚠ obligatoire",confirmPayment:"✅ Confirmer mon paiement",
+    sending:"⏳ Envoi en cours…",history:"Historique",dashboard:"Dashboard",
+    payments:"Paiements",settings:"Paramètres",
+    myParts:"Mes parts",lateWarning:"Amende de retard incluse",
+    statusOnTime:"🟢 À jour",statusLate:"🟠 Retard",statusAlert:"🔴 Alerte cotisation",
+    memberSettings:"Mon profil",saveName:"Nom sauvegardé",saveNumber:"Mon numéro",
+    saveOperator:"Mon opérateur préféré",save:"💾 Sauvegarder",
+    chooseLanguage:"Choisir la langue",selectLang:"Sélectionne ta langue pour continuer",
+    exportCSV:"Exporter CSV",reminderWA:"Rappel WhatsApp impayés",
+    sessionClosed:"Session clôturée",newSession:"🔄 Nouvelle session",
+    sessionHistory:"Historique sessions",searchPlaceholder:"Rechercher nom, numéro, réf...",
+    lightMode:"Mode clair",darkMode:"Mode sombre"
+  },
+  en:{
+    member:"Member",treasurer:"Treasurer",beneficiary:"Today's Beneficiary",
+    amountToPay:"Amount to pay",collectivePot:"Collective pot",
+    copyNum:"Copy number",sendProof:"Send proof",
+    paymentConfirmed:"Payment confirmed",paymentRejected:"Rejected — contact treasurer",
+    paymentPending:"Pending validation",
+    howToPay:"How to pay?",declarePayment:"Declare my payment",
+    fullName:"Full name",paymentNum:"Payment number",operator:"Operator",
+    txRef:"Transaction reference ⚠ required",confirmPayment:"✅ Confirm my payment",
+    sending:"⏳ Sending…",history:"History",dashboard:"Dashboard",
+    payments:"Payments",settings:"Settings",
+    myParts:"My shares",lateWarning:"Late fee included",
+    statusOnTime:"🟢 On time",statusLate:"🟠 Overdue",statusAlert:"🔴 Payment alert",
+    memberSettings:"My profile",saveName:"Saved name",saveNumber:"My number",
+    saveOperator:"Preferred operator",save:"💾 Save",
+    chooseLanguage:"Choose language",selectLang:"Select your language to continue",
+    exportCSV:"Export CSV",reminderWA:"Send reminder (WhatsApp)",
+    sessionClosed:"Session closed",newSession:"🔄 New session",
+    sessionHistory:"Session history",searchPlaceholder:"Search name, phone, ref...",
+    lightMode:"Light mode",darkMode:"Dark mode"
+  }
+};
+function t(k){return(T[S.lang]||T.fr)[k]||k;}
+
+
+function memberStatusDot(pays){
+  // Find latest payment for member (by phone or name)
+  var myPay=null;
+  var ps=Object.values(pays||{});
+  for(var i=ps.length-1;i>=0;i--){
+    if(ps[i].memberPhone===S.mPhone||ps[i].memberName===S.mName){myPay=ps[i];break;}
+  }
+  var now=new Date(),limit=new Date(S.cfg.heureLimite);
+  var diffDays=(now-limit)/(1000*60*60*24);
+  if(myPay&&myPay.status==="validé"){
+    return'<span class="status-dot dot-green"><span class="dot-pulse dot-pulse-g"></span>'+t("statusOnTime")+'</span>';
+  } else if(myPay&&myPay.status==="en attente"&&diffDays<5){
+    return'<span class="status-dot dot-orange"><span class="dot-pulse dot-pulse-o"></span>'+t("statusLate")+'</span>';
+  } else {
+    return'<span class="status-dot dot-red"><span class="dot-pulse dot-pulse-r"></span>'+t("statusAlert")+'</span>';
+  }
+}
+
+function allMembersStatusRow(pays){
+  var ps=Object.values(pays||{});
+  var total=Number(S.cfg.totalMembers||10);
+  var validated=ps.filter(function(p){return p.status==="validé";}).length;
+  var pending=ps.filter(function(p){return p.status==="en attente";}).length;
+  var missing=Math.max(0,total-validated-pending);
+  var now=new Date(),limit=new Date(S.cfg.heureLimite);
+  var diffDays=(now-limit)/(1000*60*60*24);
+  var dots=[];
+  for(var i=0;i<validated;i++) dots.push('<span class="status-dot dot-green" style="margin:2px"><span class="dot-pulse dot-pulse-g"></span>'+t("statusOnTime")+'</span>');
+  for(var j=0;j<pending;j++) dots.push('<span class="status-dot dot-orange" style="margin:2px"><span class="dot-pulse dot-pulse-o"></span>'+t("statusLate")+'</span>');
+  for(var k=0;k<missing;k++) dots.push('<span class="status-dot dot-red" style="margin:2px"><span class="dot-pulse dot-pulse-r"></span>'+t("statusAlert")+'</span>');
+  return'<div style="margin-bottom:16px"><div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px">Statuts membres</div><div style="display:flex;flex-wrap:wrap;gap:4px">'+dots.join("")+'</div></div>';
+}
+
+
+function scrLang(){
+  return'<div class="lang-screen">'+
+  '<div class="lang-logo">C</div>'+
+  '<div class="lang-title">CotisApp</div>'+
+  '<div class="lang-sub">Choisir la langue / Choose language</div>'+
+  '<div class="lang-btns">'+
+    '<div class="lang-btn" id="btn-lang-fr"><span class="lang-btn-flag">🇫🇷</span><span class="lang-btn-name">Français</span><span class="lang-btn-arrow">→</span></div>'+
+    '<div class="lang-btn" id="btn-lang-en"><span class="lang-btn-flag">🇬🇧</span><span class="lang-btn-name">English</span><span class="lang-btn-arrow">→</span></div>'+
+  '</div></div>';
+}
+
+
+function scrMemberProfile(){
+  return'<div class="screen">'+
+  '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><span class="role-tag">'+t("member")+'</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+  '<div class="page-content">'+
+  '<div class="mem-settings-card">'+
+    '<div class="mem-settings-title"><div class="mem-settings-icon">👤</div>'+t("memberSettings")+'</div>'+
+    '<div class="field"><label class="field-lbl">'+t("saveName")+'</label><input id="mem-name" class="field-inp" value="'+S.mName+'" placeholder="Ex: Amina Nkeng"/></div>'+
+    '<div class="field"><label class="field-lbl">'+t("saveNumber")+'</label><input id="mem-phone" class="field-inp" value="'+S.mPhone+'" placeholder="6XXXXXXXX" inputmode="numeric"/></div>'+
+    '<div class="field"><label class="field-lbl">'+t("saveOperator")+'</label>'+
+    '<div class="op-selector">'+
+      '<button class="op-btn'+( S.mOp==="orange"?" active-og":"")+'" id="op-orange">🟠 Orange Money</button>'+
+      '<button class="op-btn'+( S.mOp==="mtn"?" active-mtn":"")+'" id="op-mtn">🟡 MTN MoMo</button>'+
+    '</div></div>'+
+    '<div class="field"><label class="field-lbl">Langue / Language</label>'+
+    '<div class="op-selector">'+
+      '<button class="op-btn'+( S.lang==="fr"?" active-og":"")+'" id="lang-fr">🇫🇷 Français</button>'+
+      '<button class="op-btn'+( S.lang==="en"?" active-mtn":"")+'" id="lang-en">🇬🇧 English</button>'+
+    '</div></div>'+
+    '<button class="btn-save-mem" id="btn-save-mem">'+t("save")+'</button>'+
+  '</div></div>'+
+  '<div class="bottom-nav">'+
+    '<div class="nav-item" data-nav="home"><div class="nav-icon">🏠</div><div class="nav-label">'+t("dashboard")+'</div></div>'+
+    '<div class="nav-item" data-nav="pay"><div class="nav-icon">💸</div><div class="nav-label">Pay</div></div>'+
+    '<div class="nav-pay-btn" data-nav="pay">💸</div>'+
+    '<div class="nav-item" data-nav="history"><div class="nav-icon">🕐</div><div class="nav-label">'+t("history")+'</div></div>'+
+  '</div></div>';
+}
+
+/* ── RENDER ── */
+function render(){
+  var root=document.getElementById("root");if(!root)return;
+  if(S.screen==="lang")root.innerHTML=scrLang();
+  else if(S.screen==="license")root.innerHTML=scrLicense();
+  else if(S.screen==="cgu")root.innerHTML=scrCGU();
+  else if(S.screen==="portal")root.innerHTML=scrPortal();
+  else if(S.screen==="change_pin")root.innerHTML=scrChangePin();
+  else if(S.screen==="member_profile")root.innerHTML=scrMemberProfile();
+  else if(S.screen==="session_closed")root.innerHTML=scrSessionClosed();
+  else if(S.screen==="session_history")root.innerHTML=scrSessionHistory();
+  else root.innerHTML=scrApp();
+  bindEv();
+}
+
+function scrLicense(){
+  var err=S.licStatus==="invalid"?'<div class="lic-error-box">❌ Clé invalide — vérifie et réessaie</div>':S.licStatus==="expired"?'<div class="lic-error-box">⏰ Licence expirée — contacte '+CREATOR+'</div>':S.licStatus==="revoked"?'<div class="lic-error-box">🚫 Licence révoquée — contacte '+CREATOR+'</div>':"";
+  return'<div class="full-screen">'+
+  '<div class="fs-top"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div></div>'+
+  '<div class="fs-body">'+
+  '<div class="fs-eyebrow">Activation</div>'+
+  '<h1 class="fs-title">Entre ta clé<br><span>de licence</span></h1>'+
+  '<p class="fs-sub">Chaque groupe a sa propre clé unique fournie par le créateur. Valable 6 mois après activation.</p>'+
+  err+
+  '<div class="field"><label class="field-lbl">Clé de licence</label><input id="lic-in" class="field-inp" placeholder="YOUDOM-2026-XXXX-XXXX" value="'+S.licKey+'" style="letter-spacing:.06em;text-transform:uppercase"/></div>'+
+  '<button class="btn-orange" id="btn-activate">Activer →</button>'+
+  '</div>'+
+  '<div class="fs-footer">Une app par <strong>'+CREATOR+'</strong></div>'+
+  '</div>';
+}
+
+function scrCGU(){
+  return'<div class="full-screen">'+
+  '<div class="fs-top"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div></div>'+
+  '<div class="fs-body" style="padding:32px 0">'+
+  '<div class="fs-eyebrow">Conditions</div>'+
+  '<h1 class="fs-title">Avant de<br><span>commencer</span></h1>'+
+  '<div class="cgu-item"><div class="cgu-num">01</div><div><div class="cgu-title2">Pont de Paiement</div><div class="cgu-text">L\'argent circule via Orange Money ou MTN MoMo. CotisApp assure le suivi, pas le transfert.</div></div></div>'+
+  '<div class="cgu-item"><div class="cgu-num">02</div><div><div class="cgu-title2">Parts & Amendes</div><div class="cgu-text">Choisis ton nombre de noms. Les amendes s\'appliquent automatiquement après le délai.</div></div></div>'+
+  '<div class="cgu-item"><div class="cgu-num">03</div><div><div class="cgu-title2">Validation Trésorier</div><div class="cgu-text">Le Trésorier valide chaque paiement. Reçu WhatsApp automatique à la confirmation.</div></div></div>'+
+  '<button class="btn-orange" id="btn-agree">J\'accepte et continuer</button>'+
+  '</div></div>';
+}
+
+function scrPortal(){
+  var lk=locked();
+  var w=lk?'<div class="pin-warn pw-r">🔒 Bloqué — '+lSec()+'s restantes</div>':S.tries>0?'<div class="pin-warn pw-o">⚠ '+(MAX_T-S.tries)+' tentative(s)</div>':"";
+  var grp=S.licData?'<div class="portal-group">Groupe : <span>'+(S.licData.groupName||"—")+'</span></div>':"";
+  return'<div class="full-screen">'+
+  '<div class="fs-top"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div></div>'+
+  '<div class="fs-body">'+grp+
+  '<div class="fs-eyebrow">Connexion</div>'+
+  '<h1 class="fs-title">Qui<br>êtes-<span>vous ?</span></h1>'+
+  '<button class="btn-ghost" id="btn-member">👥 '+(S.lang==="en"?"Enter as Member":"Entrer comme Membre")+'</button>'+
+  '<div class="sep"><div class="sep-line"></div><span class="sep-txt">OU</span><div class="sep-line"></div></div>'+
+  '<div class="field"><label class="field-lbl">🔐 PIN Trésorier (min. 6 chiffres)</label><input id="pin-in" type="password" inputmode="numeric" placeholder="••••••" value="'+S.pin+'" class="field-inp pin-inp" maxlength="12"'+(lk?" disabled":"")+"/>"+w+"</div>"+
+  '<button class="btn-orange" id="btn-admin"'+(lk?" disabled":"")+'>Accès Administration</button>'+
+  '<p style="text-align:center;font-size:11px;color:var(--text3);margin-top:16px;">PIN par défaut : 123456</p>'+
+  '</div></div>';
+}
+
+function scrChangePin(){
+  return'<div class="full-screen">'+
+  '<div class="fs-top"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><button class="icon-btn" id="btn-back" style="font-size:14px">←</button></div>'+
+  '<div class="fs-body">'+
+  '<div class="fs-eyebrow">Sécurité</div>'+
+  '<h1 class="fs-title">Changer<br>le <span>PIN</span></h1>'+
+  '<div class="field"><label class="field-lbl">Nouveau PIN</label><input id="np1" type="password" inputmode="numeric" placeholder="••••••" value="'+S.np1+'" class="field-inp pin-inp" maxlength="12"/></div>'+
+  '<div class="field"><label class="field-lbl">Confirmer le PIN</label><input id="np2" type="password" inputmode="numeric" placeholder="••••••" value="'+S.np2+'" class="field-inp pin-inp" maxlength="12"/></div>'+
+  '<button class="btn-orange" id="btn-save-pin">Enregistrer</button>'+
+  '</div></div>';
+}
+
+function scrApp(){
+  var isA=S.role==="admin";
+  // Auto-show session closed when deadline passed and admin on home
+  if(isA && late() && (S.activeNav||"home")==="home" && S.screen!=="session_closed"){
+    return scrSessionClosed();
+  }
+  var op=OPS[S.cfg.beneficiaryOperator]||OPS.orange;
+  var pays=Object.entries(S.pays||{});
+  var pend=pays.filter(function(e){return e[1].status==="en attente";});
+  var val=pays.filter(function(e){return e[1].status==="validé";});
+  var coll=val.reduce(function(s,e){return s+Number(e[1].amount);},0);
+  var exp=Number(S.cfg.totalMembers||10)*Number(S.cfg.montantBase);
+  var pct=exp>0?Math.min(100,Math.round(coll/exp*100)):0;
+  var rate=pays.length>0?Math.round(val.length/pays.length*100):0;
+  var myL=null;for(var i=pays.length-1;i>=0;i--){if(pays[i][1].memberPhone===S.mPhone||pays[i][1].memberName===S.mName){myL=pays[i][1];break;}}
+  var myS=myL?myL.status:null;
+  var days=licDays();
+  var licB="";if(days!==null){var lc=days>30?"lic-ok":days>7?"lic-warn":"lic-danger";licB='<div class="lic-banner '+lc+'">🔑 Licence — '+days+' jour'+(days>1?"s":"")+" restant"+(days>1?"s":"")+'</div>';}
+  var nav=S.activeNav||"home";
+
+  // NAV
+  var bottomNav='<div class="bottom-nav">'+
+  (isA?
+    '<div class="nav-item'+(nav==="home"?" active":"")+'" data-nav="home"><div class="nav-icon">📊</div><div class="nav-label">'+t("dashboard")+'</div></div>'+
+    '<div class="nav-item'+(nav==="list"?" active":"")+'" data-nav="list"><div class="nav-icon">📋</div><div class="nav-label">'+t("payments")+'</div></div>'+
+    '<div class="nav-pay-btn" data-nav="list"></div>'+
+    '<div class="nav-item'+(nav==="settings"?" active":"")+'" data-nav="settings"><div class="nav-icon">⚙️</div><div class="nav-label">'+t("settings")+'</div></div>'
+  :
+    '<div class="nav-item'+(nav==="home"?" active":"")+'" data-nav="home"><div class="nav-icon">🏠</div><div class="nav-label">'+t("dashboard")+'</div></div>'+
+    '<div class="nav-item'+(nav==="pay"?" active":"")+'" data-nav="pay"><div class="nav-icon">💸</div><div class="nav-label">Pay</div></div>'+
+    '<div class="nav-pay-btn" data-nav="pay">💸</div>'+
+    '<div class="nav-item'+(nav==="history"?" active":"")+'" data-nav="history"><div class="nav-icon">🕐</div><div class="nav-label">'+t("history")+'</div></div>'
+  )+'</div>';
+
+  var content="";
+
+  // ── MEMBER HOME ──
+  if(!isA&&nav==="home"){
+    var sb=myS?'<div class="status-banner '+(myS==="validé"?"sb-g":myS==="rejeté"?"sb-r":"sb-o")+'">'+(myS==="validé"?"✅":myS==="rejeté"?"❌":"⏳")+" "+(myS==="validé"?t("paymentConfirmed"):myS==="rejeté"?t("paymentRejected"):t("paymentPending"))+'</div>':"";
+
+    var partsH=PARTS.map(function(p){return'<button class="part-btn'+(S.parts===p.v?" active":"")+'" data-p="'+p.v+'">'+p.l+' nom'+(p.v>.5?"s":"")+'</button>';}).join("");
+    var myDot=memberStatusDot(S.pays);
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right">'+myDot+'<button class="theme-toggle" id="btn-theme">'+(S.theme==="dark"?"☀️":"🌙")+'</button><button class="icon-btn" id="btn-member-profile" title="Mon profil">👤</button><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+licB+sb+
+    '<div class="hero-card">'+
+      '<div class="hero-greeting">'+t("beneficiary")+'</div>'+
+      '<div class="hero-name">'+S.cfg.beneficiaryName+' <span>'+op.emoji+'</span></div>'+
+      '<div class="hero-amount-lbl">'+t("amountToPay")+'</div>'+
+      '<div class="hero-amount">'+new Intl.NumberFormat("fr-FR").format(due())+'<small>FCFA</small></div>'+
+      (late()?'<div class="hero-late">⚠ '+t("lateWarning")+'</div>':"")+
+      '<div class="parts-wrap"><div class="parts-lbl">'+t("myParts")+'</div><div class="parts-row">'+partsH+'</div></div>'+
+      '<div class="hero-progress" style="margin-top:16px"><div class="hero-progress-row"><span style="color:var(--text2)">'+t("collectivePot")+'</span><span>'+pct+'%</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'+
+      '<div class="hero-countdown" style="margin-top:12px"><span class="cd-dot" style="background:'+(late()?"var(--red)":"var(--orange)")+'"></span><span id="cd">'+S.cd+'</span></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">'+
+      '<div class="qa-item" id="btn-copy"><div class="qa-icon" style="background:var(--orange-dim);width:100%;height:60px;border-radius:14px;border:1px solid rgba(249,115,22,0.2)"><span style="font-size:20px">📋</span></div><div class="qa-label">'+t("copyNum")+'</div></div>'+
+      '<div class="qa-item" id="btn-proof"><div class="qa-icon" style="background:var(--green-dim);width:100%;height:60px;border-radius:14px;border:1px solid rgba(34,197,94,0.2)"><span style="font-size:20px">📤</span></div><div class="qa-label">'+t("sendProof")+'</div></div>'+
+    '</div>'+
+    '</div>';
+  }
+
+  // ── MEMBER PAY ──
+  if(!isA&&nav==="pay"){
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><span class="role-tag">Membre</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+
+    '<div class="momo-card">'+
+      '<div class="form-title"><div class="form-title-icon" style="background:var(--orange-dim)">💳</div>Comment payer ?</div>'+
+      '<div class="momo-op-tabs">'+
+        '<button class="momo-op-tab momo-tab-og'+(S.gOp==="orange"?" active":"")+'" data-op="orange">🟠 Orange Money</button>'+
+        '<button class="momo-op-tab momo-tab-mtn'+(S.gOp==="mtn"?" active":"")+'" data-op="mtn">🟡 MTN MoMo</button>'+
+      '</div>'+
+      '<div class="momo-mode-row">'+
+        '<button class="momo-mode-btn'+(S.gMode==="ussd"?" active":"")+'" data-mode="ussd">📱 Code USSD</button>'+
+        '<button class="momo-mode-btn'+(S.gMode==="app"?" active":"")+'" data-mode="app">📲 Via l\'appli</button>'+
+      '</div>'+
+      '<div class="momo-steps">'+momoSteps()+'</div>'+
+      (S.gMode==="ussd"?'<button class="btn-ussd" id="btn-dial" style="background:'+(S.gOp==="orange"?"rgba(255,107,0,.15)":"rgba(245,158,11,.12)")+';color:'+(S.gOp==="orange"?"#FF6B00":"#F59E0B")+';border:1px solid '+(S.gOp==="orange"?"rgba(255,107,0,.3)":"rgba(245,158,11,.3)")+'">📞 Composer le code USSD</button>':"")+
+    '</div>'+
+    '<div class="form-card">'+
+      '<div class="form-title"><div class="form-title-icon" style="background:var(--blue-dim)">📋</div>Déclarer mon paiement</div>'+
+      '<div class="field"><label class="field-lbl">Nom complet</label><input id="mn" class="field-inp" placeholder="Ex: Amina Nkeng" value="'+S.mName+'"/></div>'+
+      '<div class="field"><label class="field-lbl">Numéro de paiement</label><input id="mp" class="field-inp" placeholder="6XXXXXXXX" value="'+S.mPhone+'" inputmode="numeric"/></div>'+
+      '<div class="field"><label class="field-lbl">Opérateur</label><select id="mo" class="field-inp">'+Object.entries(OPS).map(function(e){return'<option value="'+e[0]+'"'+(S.mOp===e[0]?" selected":"")+'> '+e[1].emoji+' '+e[1].label+'</option>';}).join("")+'</select></div>'+
+      '<div class="field"><label class="field-lbl">Référence transaction ⚠ obligatoire</label><input id="mr" class="field-inp" placeholder="Ex: MP241028XXXXX" value="'+S.mRef+'"/><div class="field-note">Visible dans le SMS de l\'opérateur après paiement</div></div>'+
+      '<button class="btn-orange" id="btn-sub"'+(S.sub==="loading"?" disabled":"")+'>'+(S.sub==="loading"?"⏳ Envoi en cours…":"✅ Confirmer mon paiement")+'</button>'+
+    '</div>'+
+    '</div>';
+  }
+
+  // ── MEMBER HISTORY ──
+  if(!isA&&nav==="history"){
+    var allPays=Object.entries(S.pays||{});
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><span class="role-tag">Membre</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+
+    '<div class="sec-hd"><div class="sec-title">Historique</div><div class="sec-badge">'+allPays.length+'</div></div>'+
+    (allPays.length===0?'<div class="empty-state"><div class="empty-icon">📭</div>Aucun paiement<br>enregistré pour cette session.</div>':allPays.map(function(e){return payRow(e[0],e[1],false);}).join(""))+
+    '</div>';
+  }
+
+  // ── ADMIN HOME ──
+  if(isA&&nav==="home"){
+    var statusRow=allMembersStatusRow(S.pays);
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><button class="theme-toggle" id="btn-theme">'+(S.theme==="dark"?"☀️":"🌙")+'</button><button class="icon-btn" id="btn-sess-hist" title="Historique">📅</button><span class="role-tag">'+t("treasurer")+'</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+licB+statusRow+
+    '<div class="hero-card">'+
+      '<div class="hero-greeting">'+S.cfg.groupName+'</div>'+
+      '<div class="hero-name">'+S.cfg.beneficiaryName+' <span>'+op.emoji+'</span></div>'+
+      '<div class="hero-amount-lbl">Cotisation de base</div>'+
+      '<div class="hero-amount">'+new Intl.NumberFormat("fr-FR").format(S.cfg.montantBase)+'<small>FCFA</small></div>'+
+      (late()?'<div class="hero-late">⚠ Amende active</div>':"")+
+      '<div class="hero-progress" style="margin-top:16px"><div class="hero-progress-row"><span style="color:var(--text2)">Cagnotte</span><span>'+pct+'%</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'+
+      '<div class="hero-countdown" style="margin-top:12px"><span class="cd-dot" style="background:'+(late()?"var(--red)":"var(--orange)")+'"></span><span id="cd">'+S.cd+'</span></div>'+
+    '</div>'+
+    '<div class="sum-grid">'+
+      '<div class="sum-card"><div class="sum-icon">💰</div><div class="sum-val" style="color:var(--orange)">'+new Intl.NumberFormat("fr-FR").format(coll)+'</div><div class="sum-lbl">Collecté (FCFA)</div></div>'+
+      '<div class="sum-card"><div class="sum-icon">⏳</div><div class="sum-val" style="color:var(--yellow)">'+pend.length+'</div><div class="sum-lbl">En attente</div></div>'+
+      '<div class="sum-card"><div class="sum-icon">✅</div><div class="sum-val" style="color:var(--green)">'+val.length+'/'+pays.length+'</div><div class="sum-lbl">Validés</div></div>'+
+      '<div class="sum-card"><div class="sum-icon">📈</div><div class="sum-val">'+rate+'%</div><div class="sum-lbl">Taux collecte</div></div>'+
+    '</div>'+
+    '<button class="wa-remind-btn" id="btn-wa-remind">📲 '+(S.lang==="en"?"Send reminder (WhatsApp)":"Rappel WhatsApp impayés")+'</button>'+
+    '<button class="export-btn" id="btn-export">📊 '+(S.lang==="en"?"Export CSV":"Exporter CSV")+'</button>'+
+    (pend.length>0?'<div class="sec-hd"><div class="sec-title">⏳ À valider</div><div class="sec-badge">'+pend.length+'</div></div>'+pend.map(function(e){return payRow(e[0],e[1],true);}).join(""):'<div class="empty-state"><div class="empty-icon">🎉</div>Tout est traité !</div>')+
+    '</div>';
+  }
+
+  // ── ADMIN LIST ──
+  if(isA&&nav==="list"){
+    var filteredPays=pays.filter(function(e){
+      if(!S.search)return true;
+      var q=S.search.toLowerCase();
+      return (e[1].memberName||"").toLowerCase().includes(q)||(e[1].memberPhone||"").toLowerCase().includes(q)||(e[1].txRef||"").toLowerCase().includes(q);
+    });
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><span class="role-tag">'+t("treasurer")+'</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+
+    '<div class="search-wrap"><span class="search-icon">🔍</span><input id="search-inp" class="search-inp" placeholder="'+(S.lang==="en"?"Search name, phone, ref...":"Rechercher nom, numéro, réf...")+'" value="'+(S.search||"")+'"/></div>'+
+    '<div class="sec-hd"><div class="sec-title">'+(S.lang==="en"?"All payments":"Tous les paiements")+'</div><div class="sec-badge">'+filteredPays.length+'</div></div>'+
+    (filteredPays.length===0?'<div class="empty-state"><div class="empty-icon">📭</div>'+(S.lang==="en"?"No payments found":"Aucun paiement trouvé")+'</div>':filteredPays.map(function(e){return payRow(e[0],e[1],true);}).join(""))+
+    '</div>';
+  }
+
+  // ── ADMIN SETTINGS ──
+  if(isA&&nav==="settings"){
+    content=
+    '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div><div class="header-right"><span class="role-tag">Trésorier</span><button class="icon-btn" id="btn-quit">🚪</button></div></div>'+
+    '<div class="page-content">'+licB+
+    '<div class="form-card">'+
+      '<div class="form-title"><div class="form-title-icon" style="background:var(--blue-dim)">⚙️</div>Configuration session</div>'+
+      '<div class="field"><label class="field-lbl">Nom du groupe</label><input id="sg" class="field-inp" value="'+S.cfg.groupName+'"/></div>'+
+      '<div class="field"><label class="field-lbl">Bénéficiaire</label><input id="sn" class="field-inp" value="'+S.cfg.beneficiaryName+'"/></div>'+
+      '<div class="field"><label class="field-lbl">Numéro bénéficiaire</label><input id="sp" class="field-inp" value="'+S.cfg.beneficiaryPhone+'" inputmode="numeric"/></div>'+
+      '<div class="field"><label class="field-lbl">Opérateur</label><select id="so" class="field-inp">'+Object.entries(OPS).map(function(e){return'<option value="'+e[0]+'"'+(S.cfg.beneficiaryOperator===e[0]?" selected":"")+'> '+e[1].emoji+' '+e[1].label+'</option>';}).join("")+'</select></div>'+
+      '<div class="field"><label class="field-lbl">Numéro trésorier (WhatsApp)</label><input id="st" class="field-inp" value="'+(S.cfg.treasurerPhone||"")+'" inputmode="numeric" placeholder="6XXXXXXXX"/></div>'+
+      '<div class="two-col">'+
+        '<div class="field"><label class="field-lbl">Cotisation (FCFA)</label><input id="sb" type="number" class="field-inp" value="'+S.cfg.montantBase+'"/></div>'+
+        '<div class="field"><label class="field-lbl">Amende (FCFA)</label><input id="sa" type="number" class="field-inp" value="'+S.cfg.montantAmende+'"/></div>'+
+      '</div>'+
+      '<div class="field"><label class="field-lbl">Nb membres (progression)</label><input id="sm" type="number" class="field-inp" value="'+(S.cfg.totalMembers||10)+'"/></div>'+
+      '<div class="field"><label class="field-lbl">Heure limite</label><input id="sh" type="datetime-local" class="field-inp" value="'+S.cfg.heureLimite+'"/></div>'+
+      '<button class="btn-orange" id="btn-save">💾 Sauvegarder</button>'+
+    '</div>'+
+    '<div class="form-card">'+
+      '<div class="form-title"><div class="form-title-icon" style="background:var(--red-dim)">🔐</div>Sécurité</div>'+
+      '<button class="btn-ghost" id="btn-chpin" style="margin-bottom:0">Changer le PIN →</button>'+
+    '</div>'+
+    '<div style="text-align:center;font-size:11px;color:var(--text3);padding:8px;">'+(fbOk?"🔥 Firebase — temps réel":"⚠ Mode local")+'<br>CotisApp par <span style="color:var(--orange)">'+CREATOR+'</span></div>'+
+    '</div>';
+  }
+
+  return'<div class="screen">'+content+bottomNav+'</div>';
+}
+
+function payRow(key,p,isA){
+  var sc=p.status==="validé"?"chip-v":p.status==="rejeté"?"chip-r":"chip-p";
+  var av=p.memberName?p.memberName.charAt(0).toUpperCase():"?";
+  var avBg=p.status==="validé"?"var(--green-dim)":p.status==="rejeté"?"var(--red-dim)":"var(--yellow-dim)";
+  var opE=OPS[p.memberOperator]?OPS[p.memberOperator].emoji:"";
+  var pL=p.parts&&p.parts!==1?" · "+p.parts+" noms":"";
+  return'<div class="pay-card">'+
+  '<div class="pay-avatar" style="background:'+avBg+'">'+av+'</div>'+
+  '<div class="pay-body">'+
+    '<div class="pay-name">'+p.memberName+pL+'</div>'+
+    '<div class="pay-meta">'+opE+' '+p.memberPhone+'</div>'+
+    '<div class="pay-ref">📋 '+(p.txRef||"—")+'</div>'+
+    (isA&&p.status==="en attente"?'<div class="pay-actions"><button class="pay-btn-ok" data-key="'+key+'">✓ '+(S.lang==="en"?"Validate":"Valider")+'</button><button class="pay-btn-no" data-key="'+key+'">✕ '+(S.lang==="en"?"Reject":"Rejeter")+'</button></div>':"")+
+    (p.rejectReason?'<div style="font-size:11px;color:var(--red);margin-top:4px">'+p.rejectReason+'</div>':"")+
+  '</div>'+
+  '<div class="pay-right">'+
+    '<div class="pay-amount" style="color:'+(p.status==="validé"?"var(--green)":p.status==="rejeté"?"var(--red)":"var(--yellow)")+'">'+fmt(p.amount)+'</div>'+
+    '<span class="pay-chip '+sc+'">'+(p.status==="validé"?"✅":p.status==="rejeté"?"❌":"⏳")+' '+p.status+'</span>'+
+  '</div>'+
+  '</div>';
+}
+
+function bindEv(){
+  var el;
+  el=q("#lic-in");if(el){el.addEventListener("input",function(e){S.licKey=e.target.value.toUpperCase();});el.addEventListener("keydown",function(e){if(e.key==="Enter")valLic(S.licKey.trim());});}
+  el=q("#btn-activate");if(el)el.addEventListener("click",function(){valLic(S.licKey.trim());});
+  el=q("#btn-agree");if(el)el.addEventListener("click",function(){set$({screen:"portal"});});
+  el=q("#btn-member");if(el)el.addEventListener("click",function(){set$({screen:"app",role:"member",activeNav:"home"});});
+  el=q("#pin-in");if(el){el.addEventListener("input",function(e){S.pin=e.target.value;});el.addEventListener("keydown",function(e){if(e.key==="Enter")tryAdmin();});}
+  el=q("#btn-admin");if(el)el.addEventListener("click",tryAdmin);
+  el=q("#btn-quit");if(el)el.addEventListener("click",function(){set$({screen:"portal",role:null,pin:""});});
+  el=q("#btn-back");if(el)el.addEventListener("click",function(){set$({screen:"app",role:"admin",activeNav:"settings"});});
+  document.querySelectorAll(".nav-item,.nav-pay-btn").forEach(function(b){if(b.dataset.nav)b.addEventListener("click",function(){set$({activeNav:b.dataset.nav});});});
+  el=q("#btn-copy");if(el)el.addEventListener("click",function(){navigator.clipboard.writeText(S.cfg.beneficiaryPhone).catch(function(){});showN("✅ Numéro "+S.cfg.beneficiaryPhone+" copié !");});
+  el=q("#btn-proof");if(el)el.addEventListener("click",sendProof);
+  document.querySelectorAll(".part-btn").forEach(function(b){b.addEventListener("click",function(){set$({parts:parseFloat(b.dataset.p)});});});
+  document.querySelectorAll(".momo-op-tab").forEach(function(b){b.addEventListener("click",function(){set$({gOp:b.dataset.op});});});
+  document.querySelectorAll(".momo-mode-btn").forEach(function(b){b.addEventListener("click",function(){set$({gMode:b.dataset.mode});});});
+  el=q("#btn-dial");if(el)el.addEventListener("click",function(){var ph=S.cfg.beneficiaryPhone,am=due();window.location.href=S.gOp==="orange"?"tel:%23150*1*1*"+ph+"*"+am+"*":"tel:*126*1*"+ph+"*"+am+"%23";});
+  el=q("#mn");if(el)el.addEventListener("input",function(e){S.mName=e.target.value;});
+  el=q("#mp");if(el)el.addEventListener("input",function(e){S.mPhone=e.target.value;});
+  el=q("#mo");if(el)el.addEventListener("change",function(e){S.mOp=e.target.value;});
+  el=q("#mr");if(el)el.addEventListener("input",function(e){S.mRef=e.target.value;});
+  el=q("#btn-sub");if(el)el.addEventListener("click",submitPay);
+  el=q("#btn-save");if(el)el.addEventListener("click",function(){
+    saveCfg({groupName:q("#sg")?.value||S.cfg.groupName,beneficiaryName:q("#sn")?.value||S.cfg.beneficiaryName,beneficiaryPhone:q("#sp")?.value||S.cfg.beneficiaryPhone,beneficiaryOperator:q("#so")?.value||S.cfg.beneficiaryOperator,treasurerPhone:q("#st")?.value||"",montantBase:Number(q("#sb")?.value)||S.cfg.montantBase,montantAmende:Number(q("#sa")?.value)||S.cfg.montantAmende,totalMembers:Number(q("#sm")?.value)||S.cfg.totalMembers,heureLimite:q("#sh")?.value||S.cfg.heureLimite});
+    showN("✅ Paramètres sauvegardés !");
+  });
+  el=q("#btn-chpin");if(el)el.addEventListener("click",function(){set$({screen:"change_pin",np1:"",np2:""});});
+  el=q("#np1");if(el)el.addEventListener("input",function(e){S.np1=e.target.value;});
+  el=q("#np2");if(el)el.addEventListener("input",function(e){S.np2=e.target.value;});
+  el=q("#btn-save-pin");if(el)el.addEventListener("click",changePIN);
+  document.querySelectorAll(".pay-btn-ok").forEach(function(b){b.addEventListener("click",function(){var k=b.dataset.key;showConfirm("val",k,S.pays[k]);});});
+  document.querySelectorAll(".pay-btn-no").forEach(function(b){b.addEventListener("click",function(){var k=b.dataset.key;showConfirm("rej",k,S.pays[k]);});});
+
+  // Language screen
+  el=q("#btn-lang-fr");if(el)el.addEventListener("click",function(){S.lang="fr";localStorage.setItem("lang","fr");set$({screen:"license"});});
+  el=q("#btn-lang-en");if(el)el.addEventListener("click",function(){S.lang="en";localStorage.setItem("lang","en");set$({screen:"license"});});
+
+  // Theme toggle
+  el=q("#btn-theme");if(el)el.addEventListener("click",toggleTheme);
+
+  // WA reminder
+  el=q("#btn-wa-remind");if(el)el.addEventListener("click",sendWAReminder);
+
+  // Export CSV
+  el=q("#btn-export");if(el)el.addEventListener("click",exportCSV);
+  el=q("#btn-export-sc");if(el)el.addEventListener("click",exportCSV);
+
+  // Session history
+  el=q("#btn-sess-hist");if(el)el.addEventListener("click",function(){set$({screen:"session_history"});});
+  el=q("#btn-back-hist");if(el)el.addEventListener("click",function(){set$({screen:"app",role:"admin",activeNav:"home"});});
+
+  // New session from closed screen
+  el=q("#btn-new-session");if(el)el.addEventListener("click",function(){
+    saveSession();
+    if(fbOk)db.ref("groups/"+gk()+"/payments").remove();
+    else{S.pays={};saveL();}
+    set$({screen:"app",role:"admin",activeNav:"settings"});
+    showN(S.lang==="en"?"✅ New session started!":"✅ Nouvelle session démarrée !");
+  });
+
+  // Search in admin list
+  el=q("#search-inp");if(el){
+    el.addEventListener("input",function(e){S.search=e.target.value;render();});
+    el.focus();
+  }
+
+  // Member theme toggle (if present)
+  el=q("#btn-theme-mem");if(el)el.addEventListener("click",toggleTheme);
+
+  // Member profile button
+  el=q("#btn-member-profile");if(el)el.addEventListener("click",function(){set$({screen:"member_profile"});});
+
+  // Member profile screen save
+  el=q("#btn-save-mem");if(el)el.addEventListener("click",function(){
+    var n=q("#mem-name"),p=q("#mem-phone");
+    if(n)S.mName=n.value;if(p)S.mPhone=p.value;
+    localStorage.setItem("sn",S.mName);localStorage.setItem("sp",S.mPhone);
+    localStorage.setItem("so",S.mOp);
+    showN(S.lang==="en"?"✅ Profile saved!":"✅ Profil sauvegardé !");
+    set$({screen:"app",role:"member",activeNav:"home"});
+  });
+  el=q("#op-orange");if(el)el.addEventListener("click",function(){S.mOp="orange";render();});
+  el=q("#op-mtn");if(el)el.addEventListener("click",function(){S.mOp="mtn";render();});
+  el=q("#lang-fr");if(el)el.addEventListener("click",function(){S.lang="fr";localStorage.setItem("lang","fr");render();});
+  el=q("#lang-en");if(el)el.addEventListener("click",function(){S.lang="en";localStorage.setItem("lang","en");render();});
+}
+
+
+/* ── NEW FEATURES JS ── */
+
+function toggleTheme(){
+  S.theme = S.theme==="dark"?"light":"dark";
+  localStorage.setItem("theme",S.theme);
+  document.body.classList.toggle("light", S.theme==="light");
+  render();
+}
+
+// ── CONFIRM MODAL ──
+function showConfirm(type, key, pay){
+  S.confirmAction={type:type,key:key,pay:pay};
+  var overlay=document.createElement("div");
+  overlay.className="modal-overlay";
+  overlay.id="modal-overlay";
+  var name=pay.memberName||"?";
+  var amount=fmt(pay.amount);
+  var isVal=type==="val";
+  overlay.innerHTML=
+    '<div class="modal-box">'+
+    '<div class="modal-title">'+(isVal?(S.lang==="en"?"Confirm payment?":"Confirmer le paiement ?"):(S.lang==="en"?"Reject payment?":"Rejeter le paiement ?"))+'</div>'+
+    '<div class="modal-sub">'+name+' — '+pay.memberPhone+'</div>'+
+    '<div class="modal-amount">'+amount+'</div>'+
+    '<div class="modal-btns">'+
+      '<button class="modal-btn-cancel" id="m-cancel">'+(S.lang==="en"?"Cancel":"Annuler")+'</button>'+
+      '<button class="modal-btn-ok" id="m-ok" style="background:'+(isVal?"linear-gradient(135deg,var(--green),#16a34a)":"linear-gradient(135deg,var(--red),#dc2626)")+'">'+(isVal?(S.lang==="en"?"✓ Validate":"✓ Valider"):(S.lang==="en"?"✕ Reject":"✕ Rejeter"))+'</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("m-cancel").onclick=function(){overlay.remove();S.confirmAction=null;};
+  document.getElementById("m-ok").onclick=function(){
+    overlay.remove();
+    if(S.confirmAction){
+      if(S.confirmAction.type==="val") valPay(S.confirmAction.key);
+      else {
+        var r=prompt((S.lang==="en"?"Reason for rejection:":"Raison du rejet :"))||"";
+        rejPayWithReason(S.confirmAction.key, r);
+      }
+      S.confirmAction=null;
+    }
+  };
+}
+
+function rejPayWithReason(key,r){
+  var p=S.pays[key];if(!p)return;
+  if(fbOk)db.ref("groups/"+gk()+"/payments/"+key).update({status:"rejeté",rejectReason:r});
+  else{S.pays[key].status="rejeté";S.pays[key].rejectReason=r;saveL();render();}
+  if(p.memberPhone)window.open("https://wa.me/"+p.memberPhone.replace(/\D/g,"")+"?text="+encodeURIComponent("*❌ PAIEMENT REJETÉ*\n\n👤 "+p.memberName+(r?"\n📝 "+r:"")+"\n\nContacte le trésorier."),"_blank");
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  var pays=Object.values(S.pays||{});
+  if(pays.length===0){showN(S.lang==="en"?"No payments to export":"Aucun paiement à exporter","e");return;}
+  var rows=["Nom,Téléphone,Opérateur,Montant,Statut,Référence,Date"];
+  pays.forEach(function(p){
+    rows.push([
+      '"'+(p.memberName||"")+'"',
+      p.memberPhone||"",
+      p.memberOperator||"",
+      p.amount||0,
+      p.status||"",
+      '"'+(p.txRef||"")+'"',
+      '"'+(p.createdAt?p.createdAt.slice(0,10):"")+'"'
+    ].join(","));
+  });
+  var blob=new Blob([rows.join("\n")],{type:"text/csv"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;a.download="CotisApp_"+S.cfg.groupName+"_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();URL.revokeObjectURL(url);
+  showN(S.lang==="en"?"✅ CSV exported!":"✅ Export CSV réussi !");
+}
+
+// ── WA REMINDER to unpaid members ──
+function sendWAReminder(){
+  var pays=Object.values(S.pays||{});
+  var validatedPhones=pays.filter(function(p){return p.status==="validé";}).map(function(p){return p.memberPhone;});
+  var pendingNames=pays.filter(function(p){return p.status==="en attente";}).map(function(p){return p.memberName;});
+  var tp=S.cfg.treasurerPhone||"";
+  if(!tp){showN(S.lang==="en"?"⚠ Treasurer number not set":"⚠ Numéro trésorier non configuré","e");return;}
+  var msg="*⏰ RAPPEL COTISATION — "+S.cfg.groupName+"*\n\n";
+  msg+="📅 Bénéficiaire : *"+S.cfg.beneficiaryName+"*\n";
+  msg+="💰 Montant : *"+fmt(Number(S.cfg.montantBase))+"*\n";
+  msg+="⏳ Limite : "+new Date(S.cfg.heureLimite).toLocaleString("fr-FR")+"\n\n";
+  if(pendingNames.length>0) msg+="⏳ En attente : "+pendingNames.join(", ")+"\n";
+  msg+="\n_Veuillez payer et envoyer votre preuve au trésorier. Merci !_";
+  window.open("https://wa.me/"+tp.replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");
+}
+
+// ── SESSION CLOSED SCREEN ──
+function scrSessionClosed(){
+  var pays=Object.values(S.pays||{});
+  var val=pays.filter(function(p){return p.status==="validé";});
+  var total=val.reduce(function(s,p){return s+Number(p.amount);},0);
+  var rate=pays.length>0?Math.round(val.length/pays.length*100):0;
+  return'<div class="session-closed">'+
+  '<div class="sc-icon">🏁</div>'+
+  '<div class="sc-title">'+(S.lang==="en"?"Session closed":"Session clôturée")+'</div>'+
+  '<div class="sc-sub">'+(S.lang==="en"?"The deadline has passed. Here is the summary for this turn.":"Le délai est passé. Voici le résumé de ce tour.")+'</div>'+
+  '<div class="sc-summary">'+
+    '<div class="sc-row"><span>'+(S.lang==="en"?"Beneficiary":"Bénéficiaire")+'</span><span class="sc-val">'+S.cfg.beneficiaryName+'</span></div>'+
+    '<div class="sc-row"><span>'+(S.lang==="en"?"Validated":"Validés")+'</span><span class="sc-val">'+val.length+' / '+Number(S.cfg.totalMembers||10)+'</span></div>'+
+    '<div class="sc-row"><span>'+(S.lang==="en"?"Collection rate":"Taux collecte")+'</span><span class="sc-val">'+rate+'%</span></div>'+
+    '<div class="sc-row"><span>'+(S.lang==="en"?"Total collected":"Total collecté")+'</span><span class="sc-val">'+fmt(total)+'</span></div>'+
+  '</div>'+
+  '<button class="btn-orange" id="btn-new-session">'+(S.lang==="en"?"🔄 New session":"🔄 Nouvelle session")+'</button>'+
+  '<button class="export-btn" id="btn-export-sc" style="margin-top:10px">📊 Export CSV</button>'+
+  '</div>';
+}
+
+// ── SESSION HISTORY VIEW ──
+function scrSessionHistory(){
+  var hist=S.sessionHistory;
+  var items=hist.length===0?
+    '<div class="empty-state"><div class="empty-icon">📅</div>'+(S.lang==="en"?"No sessions yet":"Aucune session")+'</div>':
+    hist.slice().reverse().map(function(s,i){
+      return'<div class="sess-card">'+
+      '<div class="sess-num">'+(hist.length-i)+'</div>'+
+      '<div class="sess-body"><div class="sess-name">'+s.beneficiary+'</div><div class="sess-date">'+s.date+'</div></div>'+
+      '<div class="sess-right"><div class="sess-amount">'+fmt(s.total)+'</div><div class="sess-rate">'+s.rate+'% collecté</div></div>'+
+      '</div>';
+    }).join("");
+  return'<div class="screen">'+
+  '<div class="app-header"><div class="header-logo"><div class="header-logo-icon">C</div><span class="header-logo-text">Cotis<span>App</span></span></div>'+
+  '<div class="header-right"><button class="icon-btn" id="btn-back-hist">←</button></div></div>'+
+  '<div class="page-content">'+
+  '<div class="sec-hd"><div class="sec-title">📅 '+(S.lang==="en"?"Session history":"Historique sessions")+'</div><div class="sec-badge">'+hist.length+'</div></div>'+
+  items+'</div></div>';
+}
+
+function saveSession(){
+  var pays=Object.values(S.pays||{});
+  var val=pays.filter(function(p){return p.status==="validé";});
+  var total=val.reduce(function(s,p){return s+Number(p.amount);},0);
+  var rate=pays.length>0?Math.round(val.length/pays.length*100):0;
+  S.sessionHistory.push({
+    beneficiary:S.cfg.beneficiaryName,
+    date:new Date().toLocaleDateString("fr-FR"),
+    total:total,rate:rate,
+    validated:val.length,members:Number(S.cfg.totalMembers||10)
+  });
+  localStorage.setItem("sessHist",JSON.stringify(S.sessionHistory));
+}
+
+window.addEventListener("DOMContentLoaded",function(){
+  // Initialize extra state
+  S.theme = localStorage.getItem("theme")||"dark";
+  S.search = "";
+  S.confirmAction = null;
+  S.sessionHistory = JSON.parse(localStorage.getItem("sessHist")||"[]");
+  if(S.theme==="light") document.body.classList.add("light");
+  render();
+  initFB();
+});
+</script>
+</body>
+</html>
